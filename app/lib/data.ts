@@ -13,9 +13,6 @@ const sql = postgres(process.env.POSTGRES_URL!, { ssl: 'require' });
 
 export async function fetchRevenue() {
   try {
-    // Artificially delay a response for demo purposes.
-    // Don't do this in production :)
-
     console.log('Fetching revenue data...');
     await new Promise((resolve) => setTimeout(resolve, 3000));
 
@@ -52,9 +49,6 @@ export async function fetchLatestInvoices() {
 
 export async function fetchCardData() {
   try {
-    // You can probably combine these into a single SQL query
-    // However, we are intentionally splitting them to demonstrate
-    // how to initialize multiple queries in parallel with JS.
     const invoiceCountPromise = sql`SELECT COUNT(*) FROM invoices`;
     const customerCountPromise = sql`SELECT COUNT(*) FROM customers`;
     const invoiceStatusPromise = sql`SELECT
@@ -154,13 +148,19 @@ export async function fetchInvoiceById(id: string) {
       WHERE invoices.id = ${id};
     `;
 
+    // Verificamos si la factura existe
+    if (data.length === 0) {
+      console.log('Invoice not found for ID:', id);
+      return null; // No se encontró la factura
+    }
+
+    // Si encontramos la factura, la devolvemos con el monto convertido
     const invoice = data.map((invoice) => ({
       ...invoice,
-      // Convert amount from cents to dollars
-      amount: invoice.amount / 100,
+      amount: invoice.amount / 100, // Convertimos de centavos a dólares
     }));
 
-    return invoice[0];
+    return invoice[0]; // Retornamos la primera (y única) factura
   } catch (error) {
     console.error('Database Error:', error);
     throw new Error('Failed to fetch invoice.');
